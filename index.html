@@ -1483,30 +1483,32 @@ function _showReplyButtons() {
   container.classList.add('show');
   container.innerHTML = '';
 
-  // show mic prompt
-  var lbl = document.createElement('div');
-  lbl.style.cssText = 'font-size:.75rem;color:rgba(255,255,255,.5);text-align:center;padding:4px 0 8px;';
-  lbl.textContent = '🎤 Speak your reply…';
-  container.appendChild(lbl);
-
-  // show reply options as hints (grayed out, not buttons)
-  script.replies.forEach(function(r, i) {
-    var hint = document.createElement('div');
-    hint.style.cssText = 'font-size:.72rem;color:rgba(255,255,255,.25);padding:3px 8px;border-left:2px solid rgba(255,255,255,.1);margin:3px 0;';
-    hint.textContent = r.you;
-    container.appendChild(hint);
-  });
-
-  // fallback tap-to-speak button
+  // big tap-to-speak mic button
   var tapBtn = document.createElement('button');
   tapBtn.id = 'cs-mic-btn';
-  tapBtn.style.cssText = 'margin-top:10px;background:rgba(231,76,60,.8);border:none;border-radius:50%;width:48px;height:48px;font-size:1.4rem;cursor:pointer;animation:cg 1.2s ease infinite;display:block;margin:10px auto 0;';
+  tapBtn.style.cssText = 'background:rgba(231,76,60,.9);border:none;border-radius:50%;width:64px;height:64px;font-size:1.8rem;cursor:pointer;animation:cg 1.2s ease infinite;display:block;margin:8px auto;box-shadow:0 0 0 8px rgba(231,76,60,.2);';
   tapBtn.textContent = '🎤';
   tapBtn.onclick = _listenForReply;
   container.appendChild(tapBtn);
 
-  // auto-start listening after short delay
-  setTimeout(_listenForReply, 600);
+  var lbl = document.createElement('div');
+  lbl.style.cssText = 'font-size:.78rem;color:rgba(255,255,255,.6);text-align:center;padding:4px 0 10px;';
+  lbl.textContent = 'Tap mic and speak';
+  container.appendChild(lbl);
+
+  // show reply options as tappable buttons too (fallback)
+  var orLbl = document.createElement('div');
+  orLbl.style.cssText = 'font-size:.65rem;color:rgba(255,255,255,.2);text-align:center;padding:2px 0 6px;letter-spacing:.05em;';
+  orLbl.textContent = '— or tap a reply —';
+  container.appendChild(orLbl);
+
+  script.replies.forEach(function(r, i) {
+    var btn = document.createElement('button');
+    btn.className = 'reply-btn';
+    btn.textContent = r.you;
+    btn.onclick = function() { _sendReply(i); };
+    container.appendChild(btn);
+  });
 }
 
 function _listenForReply() {
