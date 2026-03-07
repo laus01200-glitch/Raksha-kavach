@@ -1395,21 +1395,34 @@ function startFakeCall(name, status, icon) {
   // ringtone
   try {
     var ac = new (window.AudioContext || window.webkitAudioContext)();
+    // compressor to maximise perceived loudness
+    var comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -6;
+    comp.knee.value = 3;
+    comp.ratio.value = 4;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.1;
+    comp.connect(ac.destination);
+
     var ring = function(start) {
       var o = ac.createOscillator(), g = ac.createGain();
       var o2 = ac.createOscillator(), g2 = ac.createGain();
-      o.connect(g); g.connect(ac.destination);
-      o2.connect(g2); g2.connect(ac.destination);
-      o.type = 'sine'; o.frequency.value = 880;
-      o2.type = 'sine'; o2.frequency.value = 660;
-      [g, g2].forEach(function(gn) {
+      var o3 = ac.createOscillator(), g3 = ac.createGain();
+      o.connect(g);   g.connect(comp);
+      o2.connect(g2); g2.connect(comp);
+      o3.connect(g3); g3.connect(comp);
+      o.type = 'square'; o.frequency.value = 880;
+      o2.type = 'square'; o2.frequency.value = 660;
+      o3.type = 'sine';   o3.frequency.value = 440;
+      [g, g2, g3].forEach(function(gn) {
         gn.gain.setValueAtTime(0, ac.currentTime + start);
-        gn.gain.linearRampToValueAtTime(0.18, ac.currentTime + start + 0.05);
-        gn.gain.linearRampToValueAtTime(0.18, ac.currentTime + start + 0.35);
+        gn.gain.linearRampToValueAtTime(0.9, ac.currentTime + start + 0.03);
+        gn.gain.linearRampToValueAtTime(0.9, ac.currentTime + start + 0.35);
         gn.gain.linearRampToValueAtTime(0, ac.currentTime + start + 0.45);
       });
-      o.start(ac.currentTime + start); o.stop(ac.currentTime + start + 0.5);
+      o.start(ac.currentTime + start);  o.stop(ac.currentTime + start + 0.5);
       o2.start(ac.currentTime + start); o2.stop(ac.currentTime + start + 0.5);
+      o3.start(ac.currentTime + start); o3.stop(ac.currentTime + start + 0.5);
     };
     [0, 0.6, 1.2, 2.4, 3.0, 3.6].forEach(ring);
     setTimeout(function(){ try { ac.close(); } catch(e){} }, 5000);
