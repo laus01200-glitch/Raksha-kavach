@@ -2312,8 +2312,6 @@ function formatJDate(dateStr) {
 }
 
 // Init journal on page load
-renderJournalList();
-renderJournalStats();
-</script>
-</body>
-</html>
+try { renderJournalList(); } catch(e) {}
+try { renderJournalStats(); } catch(e) {}
+</script></body></html>
