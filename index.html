@@ -1082,7 +1082,8 @@ function getLocation(silent) {
     function() {
       document.getElementById('locDisp').textContent = 'Permission denied — enable GPS in browser settings';
       if (!silent) toast('⚠️ Location Error', 'Enable GPS access', 'w');
-    }
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
 
