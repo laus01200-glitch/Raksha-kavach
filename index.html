@@ -1966,19 +1966,14 @@ setTimeout(function() { toast('🛡️ Raksha Kavach', 'Safety shield active. St
 function dbSave(endpoint, data) { /* replaced by Supabase */ }
 
 // ── PWA SERVICE WORKER ────────────────────────────────
+// Unregister all service workers and clear all caches
 if ('serviceWorker' in navigator) {
-  // Unregister ALL old service workers first to clear stale cache
   navigator.serviceWorker.getRegistrations().then(function(regs) {
     regs.forEach(function(reg) { reg.unregister(); });
   });
-  // Re-register fresh SW on HTTPS after a delay
-  if (location.protocol === 'https:') {
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        navigator.serviceWorker.register('/sw.js').catch(function() {});
-      }, 2000);
-    });
-  }
+  caches.keys().then(function(keys) {
+    keys.forEach(function(key) { caches.delete(key); });
+  });
 }
 
 // ── PWA INSTALL PROMPT ────────────────────────────────
