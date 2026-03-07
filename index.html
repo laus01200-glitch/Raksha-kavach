@@ -1512,62 +1512,78 @@ function _showReplyButtons() {
 function _listenForReply() {
   if (_callState.replyUsed) return;
   var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    // fallback to buttons if no speech recognition
-    _showFallbackButtons();
-    return;
-  }
+  if (!SpeechRecognition) { _showFallbackButtons(); return; }
+
+  // STOP TTS before mic — they conflict
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
 
   var btn = document.getElementById('cs-mic-btn');
   if (btn) { btn.style.background = 'rgba(39,174,96,.9)'; btn.textContent = '👂'; }
 
-  var rec = new SpeechRecognition();
-  rec.lang = 'en-IN';
-  rec.interimResults = false;
-  rec.maxAlternatives = 5;
+  // wait 400ms after stopping TTS before starting mic
+  setTimeout(function() {
+    var rec = new SpeechRecognition();
+    rec.lang = 'en-IN';
+    rec.interimResults = false;
+    rec.maxAlternatives = 5;
+    rec.continuous = false;
 
-  rec.onresult = function(e) {
-    var heard = '';
-    for (var a = 0; a < e.results[0].length; a++) {
-      heard += ' ' + e.results[0][a].transcript;
-    }
-    heard = heard.toLowerCase().trim();
+    var gotResult = false;
 
-    // match heard speech to closest reply
-    var script = _callState.script;
-    var bestIdx = 0;
-    var bestScore = -1;
-    script.replies.forEach(function(r, i) {
-      var words = r.you.toLowerCase().split(/\s+/);
-      var score = words.filter(function(w) {
-        return w.length > 3 && heard.indexOf(w) > -1;
-      }).length;
-      if (score > bestScore) { bestScore = score; bestIdx = i; }
-    });
+    rec.onresult = function(e) {
+      gotResult = true;
+      var heard = '';
+      for (var a = 0; a < e.results[0].length; a++) {
+        heard += ' ' + e.results[0][a].transcript;
+      }
+      heard = heard.toLowerCase().trim();
 
-    // show what was heard
-    var container = document.getElementById('cs-reply-btns');
-    if (container) {
-      var heardDiv = document.createElement('div');
-      heardDiv.style.cssText = 'font-size:.72rem;color:rgba(255,255,255,.4);text-align:center;padding:4px;font-style:italic;';
-      heardDiv.textContent = '"' + heard + '"';
-      container.appendChild(heardDiv);
-    }
+      // match heard speech to closest reply
+      var script = _callState.script;
+      var bestIdx = 0;
+      var bestScore = -1;
+      script.replies.forEach(function(r, i) {
+        var words = r.you.toLowerCase().split(/\s+/);
+        var score = words.filter(function(w) {
+          return w.length > 3 && heard.indexOf(w) > -1;
+        }).length;
+        if (score === 0) {
+          heard.split(/\s+/).forEach(function(hw) {
+            if (hw.length > 2 && r.you.toLowerCase().indexOf(hw) > -1) score += 0.5;
+          });
+        }
+        if (score > bestScore) { bestScore = score; bestIdx = i; }
+      });
 
-    setTimeout(function() { _sendReply(bestIdx); }, 400);
-  };
+      var container = document.getElementById('cs-reply-btns');
+      if (container) {
+        var heardDiv = document.createElement('div');
+        heardDiv.style.cssText = 'font-size:.72rem;color:rgba(100,255,150,.6);text-align:center;padding:4px;font-style:italic;';
+        heardDiv.textContent = '🎤 "' + heard + '"';
+        container.appendChild(heardDiv);
+      }
+      setTimeout(function() { _sendReply(bestIdx); }, 500);
+    };
 
-  rec.onerror = function() {
-    // on error, retry once or fall back to buttons
-    if (btn) { btn.style.background = 'rgba(231,76,60,.8)'; btn.textContent = '🎤'; }
-    _showFallbackButtons();
-  };
+    rec.onerror = function() {
+      if (btn) { btn.style.background = 'rgba(231,76,60,.8)'; btn.textContent = '🎤'; }
+      if (!gotResult) {
+        var container = document.getElementById('cs-reply-btns');
+        if (container) {
+          var retry = document.createElement('div');
+          retry.style.cssText = 'font-size:.7rem;color:rgba(255,150,100,.7);text-align:center;padding:4px;';
+          retry.textContent = "Didn\'t catch that — tap 🎤 to retry";
+          container.appendChild(retry);
+        }
+      }
+    };
 
-  rec.onend = function() {
-    if (btn) { btn.style.background = 'rgba(231,76,60,.8)'; btn.textContent = '🎤'; }
-  };
+    rec.onend = function() {
+      if (btn) { btn.style.background = 'rgba(231,76,60,.8)'; btn.textContent = '🎤'; }
+    };
 
-  try { rec.start(); } catch(e) { _showFallbackButtons(); }
+    try { rec.start(); } catch(e) { _showFallbackButtons(); }
+  }, 400);
 }
 
 function _showFallbackButtons() {
