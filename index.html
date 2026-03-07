@@ -1356,6 +1356,8 @@ function _csTime() {
 }
 
 function startFakeCall(name, status, icon) {
+  // stop background secret word listener so mic is free for fake call
+  stopListening();
   // sync both name/icon elements
   document.getElementById('cnam').textContent = name;
   document.getElementById('cnam2').textContent = name;
@@ -1696,9 +1698,12 @@ function _sendReply(idx) {
 function declineCall() {
   clearInterval(APP.callInterval);
   clearInterval(APP._csClockInt);
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
   document.getElementById('callScreen').classList.remove('show');
   document.body.style.overflow = '';
   _callState.phase = 'idle';
+  // restart secret word listener after call ends
+  setTimeout(function() { if (APP.secretWord) startListening(); }, 1000);
 }
 
 // ── TUTORIALS ─────────────────────────────────────────
