@@ -1198,23 +1198,34 @@ function alertContacts() {
       if (phone.startsWith('0')) phone = '91' + phone.slice(1);
       else if (!phone.startsWith('+') && phone.length === 10) phone = '91' + phone;
       phone = phone.replace('+', '');
-      var isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-      var url = isMobile
-        ? 'https://wa.me/' + phone + '?text=' + msg
-        : 'https://web.whatsapp.com/send?phone=' + phone + '&text=' + msg;
 
       var wrap = document.createElement('div');
       wrap.style.cssText = 'margin-bottom:8px;';
 
       var btn = document.createElement('a');
-      btn.href = url;
       btn.target = '_blank';
       btn.style.cssText = 'display:block;background:rgba(37,211,102,.2);border:1px solid rgba(37,211,102,.5);color:#fff;padding:11px 16px;border-radius:10px;text-decoration:none;font-size:.9rem;';
       btn.innerHTML = '💬 <strong>' + c.name + '</strong> <span style="opacity:.6;font-size:.8rem;">(' + c.phone + ')</span> → open &amp; paste';
-      // re-copy on click in case clipboard was cleared
-      btn.addEventListener('click', function() {
-        if (navigator.clipboard) navigator.clipboard.writeText(msgText).catch(function() {});
+
+      // build URL fresh at click time so location is always current
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        var freshLoc = APP.location
+          ? 'https://maps.google.com/?q=' + APP.location.lat + ',' + APP.location.lng
+          : 'location unavailable';
+        var freshText = 'EMERGENCY! I need help immediately! My location: ' + freshLoc;
+        var freshMsg = encodeURIComponent(freshText);
+        var isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+        var freshUrl = isMobile
+          ? 'https://wa.me/' + phone + '?text=' + freshMsg
+          : 'https://web.whatsapp.com/send?phone=' + phone + '&text=' + freshMsg;
+        if (navigator.clipboard) navigator.clipboard.writeText(freshText).catch(function() {});
+        window.open(freshUrl, '_blank');
+        // also update the displayed message box
+        var box = document.getElementById('alertMsgBox');
+        if (box) box.textContent = freshText;
       });
+
       wrap.appendChild(btn);
       linksDiv.appendChild(wrap);
     });
