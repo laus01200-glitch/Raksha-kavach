@@ -1070,21 +1070,33 @@ function getLocation(silent) {
     document.getElementById('locDisp').textContent = 'Geolocation not supported';
     return;
   }
-  navigator.geolocation.getCurrentPosition(
-    function(pos) {
-      APP.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      var txt = '📍 ' + APP.location.lat.toFixed(5) + ', ' + APP.location.lng.toFixed(5);
-      document.getElementById('locDisp').innerHTML = txt +
-        '<br><a href="https://maps.google.com/?q=' + APP.location.lat + ',' + APP.location.lng +
-        '" target="_blank" style="color:var(--teal);font-size:.8rem">🗺 Open in Maps</a>';
-      if (!silent) toast('📍 Location', txt);
-    },
-    function() {
-      document.getElementById('locDisp').textContent = 'Permission denied — enable GPS in browser settings';
-      if (!silent) toast('⚠️ Location Error', 'Enable GPS access', 'w');
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
+
+  // update display helper
+  function onPos(pos) {
+    APP.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    var txt = '📍 ' + APP.location.lat.toFixed(5) + ', ' + APP.location.lng.toFixed(5);
+    var el = document.getElementById('locDisp');
+    if (el) el.innerHTML = txt +
+      '<br><a href="https://maps.google.com/?q=' + APP.location.lat + ',' + APP.location.lng +
+      '" target="_blank" style="color:var(--teal);font-size:.8rem">🗺 Open in Maps</a>';
+    if (!silent) { toast('📍 Location', txt); silent = true; } // only toast once
+  }
+
+  function onErr() {
+    var el = document.getElementById('locDisp');
+    if (el && !APP.location) el.textContent = 'Permission denied — enable GPS in browser settings';
+    if (!silent) toast('⚠️ Location Error', 'Enable GPS access', 'w');
+  }
+
+  var opts = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+
+  // get immediately
+  navigator.geolocation.getCurrentPosition(onPos, onErr, opts);
+
+  // then watch continuously so location is always fresh for SOS
+  if (!APP._watchId) {
+    APP._watchId = navigator.geolocation.watchPosition(onPos, function() {}, opts);
+  }
 }
 
 function alertContacts() {
