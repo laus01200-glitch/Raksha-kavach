@@ -488,6 +488,10 @@ label{font-size:.83rem;color:rgba(255,255,255,.7);margin-bottom:3px;display:bloc
     <br>
     <button class="btn bgh" onclick="getLocation(false)">📡 Get My Location</button>
   </div>
+  <div class="card" id="alertLinksCard" style="display:none">
+    <h2>📲 Send Alerts</h2>
+    <div id="alertLinks"></div>
+  </div>
 </section>
 <section id="fc">
   <div class="sb">📞 Escape Tool</div>
@@ -1108,18 +1112,31 @@ function alertContacts() {
     ? 'https://maps.google.com/?q=' + APP.location.lat + ',' + APP.location.lng
     : 'location unavailable';
   var msg = encodeURIComponent('🆘 EMERGENCY! I need help immediately! My location: ' + loc);
-  APP.contacts.forEach(function(c, idx) {
-    var phone = c.phone.replace(/[\s\-\(\)]/g, '');
-    if (phone.startsWith('0')) phone = '91' + phone.slice(1);
-    else if (!phone.startsWith('+') && phone.length === 10) phone = '91' + phone;
-    phone = phone.replace('+', '');
-    setTimeout(function() {
-      window.open('https://wa.me/' + phone + '?text=' + msg, '_blank');
-    }, idx * 800);
-    toast('📱 Alert → ' + c.name, 'WhatsApp message opening…', 'd');
-  });
-}
 
+  // build clickable WhatsApp links
+  var card = document.getElementById('alertLinksCard');
+  var linksDiv = document.getElementById('alertLinks');
+  if (card) card.style.display = 'block';
+  if (linksDiv) {
+    linksDiv.innerHTML = '<p style="font-size:.8rem;color:rgba(255,255,255,.5);margin-bottom:12px">Tap each button to send WhatsApp alert:</p>';
+    APP.contacts.forEach(function(c) {
+      var phone = c.phone.replace(/[\s\-\(\)]/g, '');
+      if (phone.startsWith('0')) phone = '91' + phone.slice(1);
+      else if (!phone.startsWith('+') && phone.length === 10) phone = '91' + phone;
+      phone = phone.replace('+', '');
+      var url = 'https://wa.me/' + phone + '?text=' + msg;
+      var btn = document.createElement('a');
+      btn.href = url;
+      btn.target = '_blank';
+      btn.style.cssText = 'display:block;background:rgba(37,211,102,.2);border:1px solid rgba(37,211,102,.4);color:#fff;padding:10px 16px;border-radius:10px;margin-bottom:8px;text-decoration:none;font-size:.9rem;';
+      btn.innerHTML = '💬 WhatsApp <strong>' + c.name + '</strong> (' + c.phone + ')';
+      linksDiv.appendChild(btn);
+    });
+    // scroll to the card
+    card.scrollIntoView({ behavior: 'smooth' });
+  }
+  toast('📱 Alert Ready', 'Tap the buttons below to send', 'd');
+}
 function alert112() {
   window.location.href = 'tel:112';
 }
