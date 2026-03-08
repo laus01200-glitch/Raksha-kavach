@@ -829,6 +829,22 @@ async function doSignup() {
   var errEl = document.getElementById('suErr');
   if (!name)  { errEl.textContent = '⚠️ Please enter your name'; return; }
   if (!email || !email.includes('@')) { errEl.textContent = '⚠️ Enter a valid email'; return; }
+
+  // restrict to real, widely-used email providers only
+  var allowedDomains = [
+    'gmail.com', 'yahoo.com', 'yahoo.in', 'yahoo.co.in',
+    'outlook.com', 'hotmail.com', 'live.com',
+    'icloud.com', 'me.com', 'mac.com',
+    'protonmail.com', 'proton.me',
+    'rediffmail.com', 'rediff.com',
+    'zoho.com'
+  ];
+  var domain = email.split('@')[1];
+  if (!allowedDomains.includes(domain)) {
+    errEl.textContent = '⚠️ Please use a valid email provider (Gmail, Yahoo, Outlook, iCloud, etc.)';
+    return;
+  }
+
   if (pass.length < 6) { errEl.textContent = '⚠️ Password must be at least 6 characters'; return; }
   if (pass !== pass2)  { errEl.textContent = '⚠️ Passwords do not match'; return; }
   errEl.textContent = '⏳ Creating account...';
@@ -839,11 +855,11 @@ async function doSignup() {
     });
     console.log('Signup result:', JSON.stringify({data: !!data, error: error?.message}));
     if (error) { errEl.textContent = '⚠️ ' + error.message; return; }
-    if (data.user) {
+    if (data.user && data.session) {
       await supa.from('profiles').upsert({ id: data.user.id, full_name: name });
       loginUser(data.user, name);
     } else {
-      errEl.textContent = '✅ Account created! Please sign in.';
+      errEl.textContent = '✅ Account created! Please check your email to confirm your account before signing in.';
     }
   } catch(e) {
     console.error('Signup catch:', e);
