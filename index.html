@@ -932,6 +932,24 @@ async function initAppForUser() {
   renderJournalList();
   renderJournalStats();
   goTo('sos');
+
+  // start watching location immediately in background so it's ready when SOS triggers
+  if (navigator.geolocation) {
+    var _locOpts = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+    var _onLocUpdate = function(pos) {
+      APP.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      var el = document.getElementById('locDisp');
+      if (el) el.innerHTML = '📍 ' + pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5) +
+        '<br><a href="https://maps.google.com/?q=' + pos.coords.latitude + ',' + pos.coords.longitude +
+        '" target="_blank" style="color:var(--teal);font-size:.8rem">🗺 Open in Maps</a>';
+    };
+    // get immediately
+    navigator.geolocation.getCurrentPosition(_onLocUpdate, function(){}, _locOpts);
+    // then keep watching so it stays fresh
+    if (!APP._watchId) {
+      APP._watchId = navigator.geolocation.watchPosition(_onLocUpdate, function(){}, _locOpts);
+    }
+  }
 }
 
 // Check for existing session on page load
@@ -1026,29 +1044,16 @@ function toggleSOS() {
     document.getElementById('sov').classList.add('on');
     document.getElementById('sst').className = 'sos-st alert';
     document.getElementById('sst').textContent = '🚨 ALERT ACTIVE — Siren On — Contacts Notified';
-    // Play siren — AudioContext created directly inside click = browser allows it
     playSiren();
     alert112();
     toast('🚨 SOS Activated!', 'Siren on · Contacts notified · 112 calling', 'd');
-    // get fresh location first, then build alert links with accurate coords
+    // use already-cached location instantly — no waiting
+    alertContacts();
+    // silently refresh location in background for accuracy
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        function(pos) {
-          APP.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          var el = document.getElementById('locDisp');
-          if (el) el.innerHTML = '📍 ' + pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5) +
-            '<br><a href="https://maps.google.com/?q=' + pos.coords.latitude + ',' + pos.coords.longitude +
-            '" target="_blank" style="color:var(--teal);font-size:.8rem">🗺 Open in Maps</a>';
-          alertContacts();
-        },
-        function() {
-          // location failed — alert anyway with unavailable notice
-          alertContacts();
-        },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-      );
-    } else {
-      alertContacts();
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        APP.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      }, function(){}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
     }
   }
 }
