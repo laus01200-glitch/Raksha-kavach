@@ -1052,6 +1052,12 @@ function toggleSOS() {
     document.getElementById('sov').classList.remove('on');
     document.getElementById('sst').className = 'sos-st';
     document.getElementById('sst').textContent = '🟢 System Ready — You are safe';
+    // hide and reset alert links card
+    var card = document.getElementById('alertLinksCard');
+    var linksDiv = document.getElementById('alertLinks');
+    if (card) card.style.display = 'none';
+    if (linksDiv) linksDiv.innerHTML = '';
+    if (APP._alertMsgInterval) { clearInterval(APP._alertMsgInterval); APP._alertMsgInterval = null; }
     toast('✅ SOS Deactivated', 'You are safe. Stay strong! 💜');
   } else {
     // ACTIVATE
@@ -1161,6 +1167,7 @@ function alertContacts() {
   var card = document.getElementById('alertLinksCard');
   var linksDiv = document.getElementById('alertLinks');
   if (card) card.style.display = 'block';
+  if (linksDiv) linksDiv.innerHTML = ''; // clear previous contacts
 
   // helper to get fresh message using latest APP.location
   function getFreshText() {
