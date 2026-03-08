@@ -484,9 +484,12 @@ label{font-size:.83rem;color:rgba(255,255,255,.7);margin-bottom:3px;display:bloc
 
   <div class="card">
     <h2>📍 Live Location</h2>
-    <div id="locDisp" style="color:rgba(255,255,255,.5);font-size:.88rem">Click below to fetch your location</div>
+    <div id="locPermBanner" style="background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.4);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:.85rem;color:#fff;display:none;">
+      ⚠️ Location not enabled — <strong>tap the button below</strong> and click "Allow" so SOS can share your location.
+    </div>
+    <div id="locDisp" style="color:rgba(255,255,255,.5);font-size:.88rem">Fetching your location…</div>
     <br>
-    <button class="btn bgh" onclick="getLocation(false)">📡 Get My Location</button>
+    <button class="btn bgh" onclick="getLocation(false)" id="locBtn">📡 Enable Location for SOS</button>
   </div>
   <div class="card" id="alertLinksCard" style="display:none">
     <h2>📲 Send Alerts</h2>
@@ -938,16 +941,26 @@ async function initAppForUser() {
     var _locOpts = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     var _onLocUpdate = function(pos) {
       APP.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      var banner = document.getElementById('locPermBanner');
+      if (banner) banner.style.display = 'none';
       var el = document.getElementById('locDisp');
       if (el) el.innerHTML = '📍 ' + pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5) +
         '<br><a href="https://maps.google.com/?q=' + pos.coords.latitude + ',' + pos.coords.longitude +
         '" target="_blank" style="color:var(--teal);font-size:.8rem">🗺 Open in Maps</a>';
+      var btn = document.getElementById('locBtn');
+      if (btn) btn.textContent = '📡 Refresh Location';
+    };
+    var _onLocErr = function() {
+      var banner = document.getElementById('locPermBanner');
+      if (banner) banner.style.display = 'block';
+      var el = document.getElementById('locDisp');
+      if (el) el.textContent = 'Location not available';
     };
     // get immediately
-    navigator.geolocation.getCurrentPosition(_onLocUpdate, function(){}, _locOpts);
+    navigator.geolocation.getCurrentPosition(_onLocUpdate, _onLocErr, _locOpts);
     // then keep watching so it stays fresh
     if (!APP._watchId) {
-      APP._watchId = navigator.geolocation.watchPosition(_onLocUpdate, function(){}, _locOpts);
+      APP._watchId = navigator.geolocation.watchPosition(_onLocUpdate, _onLocErr, _locOpts);
     }
   }
 }
@@ -1101,15 +1114,25 @@ function getLocation(silent) {
   // update display helper
   function onPos(pos) {
     APP.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    var banner = document.getElementById('locPermBanner');
+    if (banner) banner.style.display = 'none';
+    var btn = document.getElementById('locBtn');
+    if (btn) btn.textContent = '📡 Refresh Location';
     var txt = '📍 ' + APP.location.lat.toFixed(5) + ', ' + APP.location.lng.toFixed(5);
     var el = document.getElementById('locDisp');
     if (el) el.innerHTML = txt +
       '<br><a href="https://maps.google.com/?q=' + APP.location.lat + ',' + APP.location.lng +
       '" target="_blank" style="color:var(--teal);font-size:.8rem">🗺 Open in Maps</a>';
-    if (!silent) { toast('📍 Location', txt); silent = true; } // only toast once
+    if (!silent) { toast('📍 Location', txt); silent = true; }
+    // restart watchPosition now that permission is granted
+    if (!APP._watchId) {
+      APP._watchId = navigator.geolocation.watchPosition(onPos, function(){}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
   }
 
   function onErr() {
+    var banner = document.getElementById('locPermBanner');
+    if (banner) banner.style.display = 'block';
     var el = document.getElementById('locDisp');
     if (el && !APP.location) el.textContent = 'Permission denied — enable GPS in browser settings';
     if (!silent) toast('⚠️ Location Error', 'Enable GPS access', 'w');
