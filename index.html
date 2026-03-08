@@ -1028,10 +1028,28 @@ function toggleSOS() {
     document.getElementById('sst').textContent = '🚨 ALERT ACTIVE — Siren On — Contacts Notified';
     // Play siren — AudioContext created directly inside click = browser allows it
     playSiren();
-    getLocation(true);
-    alertContacts();
     alert112();
     toast('🚨 SOS Activated!', 'Siren on · Contacts notified · 112 calling', 'd');
+    // get fresh location first, then build alert links with accurate coords
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          APP.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          var el = document.getElementById('locDisp');
+          if (el) el.innerHTML = '📍 ' + pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5) +
+            '<br><a href="https://maps.google.com/?q=' + pos.coords.latitude + ',' + pos.coords.longitude +
+            '" target="_blank" style="color:var(--teal);font-size:.8rem">🗺 Open in Maps</a>';
+          alertContacts();
+        },
+        function() {
+          // location failed — alert anyway with unavailable notice
+          alertContacts();
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    } else {
+      alertContacts();
+    }
   }
 }
 
